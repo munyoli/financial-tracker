@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { getDb } from '../db.js';
+import { query } from '../db.js';
 import { JWT_SECRET, requireAuth, AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
@@ -10,7 +10,7 @@ const router = Router();
  * POST /api/auth/login
  * Standard Email / Password login
  */
-router.post('/login', (req: Request, res: Response) => {
+router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
@@ -18,15 +18,8 @@ router.post('/login', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    const db = getDb();
-    const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
-    stmt.bind([email]);
-
-    let user: any = null;
-    if (stmt.step()) {
-      user = stmt.getAsObject();
-    }
-    stmt.free();
+    const { rows } = await query('SELECT * FROM users WHERE email = $1', [email]);
+    const user = rows[0];
 
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });

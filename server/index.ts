@@ -4,10 +4,13 @@
  */
 
 import express from 'express';
+import fs from 'fs';
 import { initDatabase } from './db.js';
 import { registerRoutes } from './routes.js';
 
-const PORT = process.env.SERVER_PORT || 5000;
+import path from 'path';
+
+const PORT = process.env.PORT || 5000;
 
 async function main() {
   // Initialize database first
@@ -32,16 +35,27 @@ async function main() {
   // Register API routes
   registerRoutes(app);
 
-  // Fallback route for backend root
-  app.get('/', (req, res) => {
-    res.send(`
-      <div style="font-family: system-ui, sans-serif; padding: 2rem; text-align: center;">
-        <h2>Atelier Backend API is Running</h2>
-        <p>This is the API server. To view the application, please visit:</p>
-        <a href="http://localhost:3000" style="font-size: 1.2rem; color: #4b352d; font-weight: bold;">http://localhost:3000</a>
-      </div>
-    `);
-  });
+  // Serve static files in production
+  const distPath = path.resolve(process.cwd(), 'dist');
+  if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
+    // SPA fallback
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) return next();
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  } else {
+    // Fallback route for backend root
+    app.get('/', (req, res) => {
+      res.send(`
+        <div style="font-family: system-ui, sans-serif; padding: 2rem; text-align: center;">
+          <h2>Atelier Backend API is Running</h2>
+          <p>This is the API server. To view the application, please visit:</p>
+          <a href="http://localhost:3000" style="font-size: 1.2rem; color: #4b352d; font-weight: bold;">http://localhost:3000</a>
+        </div>
+      `);
+    });
+  }
 
   // Start server
   app.listen(PORT, () => {

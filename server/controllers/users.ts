@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import { getDb, saveDatabase } from '../db.js';
+import { query } from '../db.js';
 import { requireAuth, requireAdmin, AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
@@ -15,18 +15,10 @@ router.use(requireAdmin);
  * GET /api/users
  * Returns list of team members (excluding their password hashes)
  */
-router.get('/', (req: AuthRequest, res: Response) => {
+router.get('/', async (req: AuthRequest, res: Response) => {
   try {
-    const db = getDb();
-    const stmt = db.prepare('SELECT id, email, name, role FROM users');
-    const users: any[] = [];
-    
-    while (stmt.step()) {
-      users.push(stmt.getAsObject());
-    }
-    stmt.free();
-    
-    res.json(users);
+    const { rows } = await query('SELECT id, email, name, role FROM users');
+    res.json(rows);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch users' });
   }
@@ -36,7 +28,7 @@ router.get('/', (req: AuthRequest, res: Response) => {
  * POST /api/users
  * Add a new user (admin only)
  */
-router.post('/', (req: AuthRequest, res: Response) => {
+router.post('/', async (req: AuthRequest, res: Response) => {
   try {
     const { name, email, password, role } = req.body;
     
@@ -48,26 +40,20 @@ router.post('/', (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Invalid role' });
     }
 
-    const db = getDb();
-
     // Check if email already exists
-    const checkStmt = db.prepare('SELECT id FROM users WHERE email = ?');
-    checkStmt.bind([email]);
-    if (checkStmt.step()) {
-      checkStmt.free();
+    const { rows } = await query('SELECT id FROM users WHERE email = $1', [email]);
+    if (rows.length > 0) {
       return res.status(400).json({ error: 'Email already exists' });
     }
-    checkStmt.free();
 
     const id = `USR-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     const password_hash = bcrypt.hashSync(password, 10);
 
-    db.run(
-      'INSERT INTO users (id, email, password_hash, role, name) VALUES (?, ?, ?, ?, ?)',
+    await query(
+      'INSERT INTO users (id, email, password_hash, role, name) VALUES ($1, $2, $3, $4, $5)',
       [id, email, password_hash, role, name]
     );
 
-    saveDatabase();
     res.status(201).json({ id, name, email, role });
   } catch (err) {
     console.error('Error creating user:', err);
@@ -79,7 +65,7 @@ router.post('/', (req: AuthRequest, res: Response) => {
  * DELETE /api/users/:id
  * Remove a user
  */
-router.delete('/:id', (req: AuthRequest, res: Response) => {
+router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     
@@ -88,9 +74,7 @@ router.delete('/:id', (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Cannot delete your own admin account' });
     }
 
-    const db = getDb();
-    db.run('DELETE FROM users WHERE id = ?', [id]);
-    saveDatabase();
+    await query('DELETE FROM users WHERE id = $1', [id]);
     
     res.json({ success: true, deletedId: id });
   } catch (err) {

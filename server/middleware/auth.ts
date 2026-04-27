@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { getDb } from '../db.js';
+import { query } from '../db.js';
 
 export const JWT_SECRET = process.env.JWT_SECRET || 'atelier-super-secret-key-2026';
 
@@ -16,7 +16,7 @@ export interface AuthRequest extends Request {
 /**
  * Middleware to ensure the user is authenticated via JWT.
  */
-export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const requireAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -29,17 +29,13 @@ export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction)
     const decoded = jwt.verify(token, JWT_SECRET) as any;
     
     // Check if user still exists in DB
-    const db = getDb();
-    const stmt = db.prepare('SELECT id, email, role, name FROM users WHERE id = ?');
-    stmt.bind([decoded.id]);
+    const { rows } = await query('SELECT id, email, role, name FROM users WHERE id = $1', [decoded.id]);
     
-    if (stmt.step()) {
-      req.user = stmt.getAsObject() as unknown as AuthRequest['user'];
-      stmt.free();
+    if (rows.length > 0) {
+      req.user = rows[0] as AuthRequest['user'];
       return next();
     }
     
-    stmt.free();
     return res.status(401).json({ error: 'Unauthorized: User no longer exists' });
   } catch (err) {
     return res.status(401).json({ error: 'Unauthorized: Invalid or expired token' });

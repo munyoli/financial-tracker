@@ -3,7 +3,7 @@
  */
 
 import { Router, Response } from 'express';
-import { getDb, saveDatabase } from '../db.js';
+import { query } from '../db.js';
 import { AuthRequest, requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
@@ -12,28 +12,27 @@ const router = Router();
  * GET /api/garments
  * Returns all garments, sorted by dueDate ascending.
  */
-router.get('/', (req: AuthRequest, res: Response) => {
+router.get('/', async (req: AuthRequest, res: Response) => {
   try {
-    const db = getDb();
-    const stmt = db.prepare('SELECT * FROM garments ORDER BY dueDate ASC');
-    const rows: any[] = [];
+    const { rows } = await query('SELECT * FROM garments ORDER BY "dueDate" ASC');
     const isStaff = req.user?.role === 'STAFF';
 
-    while (stmt.step()) {
-      const garment = stmt.getAsObject();
+    const garments = rows.map(garment => {
       if (isStaff) {
         // Redact financial data for STAFF
-        garment.sellingPrice = 0;
-        garment.fabricCost = 0;
-        garment.otherMaterialsCost = 0;
-        garment.laborCost = 0;
-        garment.overheadAllocation = 0;
+        return {
+          ...garment,
+          sellingPrice: 0,
+          fabricCost: 0,
+          otherMaterialsCost: 0,
+          laborCost: 0,
+          overheadAllocation: 0,
+        };
       }
-      rows.push(garment);
-    }
-    stmt.free();
+      return garment;
+    });
 
-    res.json(rows);
+    res.json(garments);
   } catch (err) {
     console.error('Error fetching garments:', err);
     res.status(500).json({ error: 'Failed to fetch garments' });
@@ -44,9 +43,8 @@ router.get('/', (req: AuthRequest, res: Response) => {
  * POST /api/garments
  * Create a new garment. (ADMIN ONLY)
  */
-router.post('/', requireAdmin, (req: AuthRequest, res: Response) => {
+router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
-    const db = getDb();
     const {
       id,
       orderId,
@@ -64,13 +62,12 @@ router.post('/', requireAdmin, (req: AuthRequest, res: Response) => {
       status,
     } = req.body;
 
-    db.run(
-      `INSERT INTO garments (id, orderId, clientName, type, description, complexity, sellingPrice, fabricCost, otherMaterialsCost, laborCost, overheadAllocation, startDate, dueDate, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    await query(
+      `INSERT INTO garments (id, "orderId", "clientName", type, description, complexity, "sellingPrice", "fabricCost", "otherMaterialsCost", "laborCost", "overheadAllocation", "startDate", "dueDate", status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
       [id, orderId, clientName, type, description, complexity, sellingPrice, fabricCost, otherMaterialsCost, laborCost, overheadAllocation || 0, startDate, dueDate, status]
     );
 
-    saveDatabase();
     res.status(201).json(req.body);
   } catch (err) {
     console.error('Error creating garment:', err);
@@ -82,9 +79,8 @@ router.post('/', requireAdmin, (req: AuthRequest, res: Response) => {
  * PUT /api/garments/:id
  * Update an existing garment.
  */
-router.put('/:id', (req: AuthRequest, res: Response) => {
+router.put('/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const db = getDb();
     const { id } = req.params;
     const isStaff = req.user?.role === 'STAFF';
 
@@ -105,24 +101,23 @@ router.put('/:id', (req: AuthRequest, res: Response) => {
     } = req.body;
 
     if (isStaff) {
-      // IF STAFF: ONLY UPDATE STATUS. Ignore all other fields to prevent wiping costs.
-      db.run(
-        `UPDATE garments SET status = ? WHERE id = ?`,
+      // IF STAFF: ONLY UPDATE STATUS.
+      await query(
+        'UPDATE garments SET status = $1 WHERE id = $2',
         [status, id]
       );
     } else {
       // IF ADMIN: Update everything
-      db.run(
+      await query(
         `UPDATE garments 
-         SET orderId = ?, clientName = ?, type = ?, description = ?, complexity = ?,
-             sellingPrice = ?, fabricCost = ?, otherMaterialsCost = ?, laborCost = ?,
-             overheadAllocation = ?, startDate = ?, dueDate = ?, status = ?
-         WHERE id = ?`,
+         SET "orderId" = $1, "clientName" = $2, type = $3, description = $4, complexity = $5,
+             "sellingPrice" = $6, "fabricCost" = $7, "otherMaterialsCost" = $8, "laborCost" = $9,
+             "overheadAllocation" = $10, "startDate" = $11, "dueDate" = $12, status = $13
+         WHERE id = $14`,
         [orderId, clientName, type, description, complexity, sellingPrice, fabricCost, otherMaterialsCost, laborCost, overheadAllocation || 0, startDate, dueDate, status, id]
       );
     }
 
-    saveDatabase();
     res.json({ id, ...req.body });
   } catch (err) {
     console.error('Error updating garment:', err);
@@ -134,14 +129,10 @@ router.put('/:id', (req: AuthRequest, res: Response) => {
  * DELETE /api/garments/:id
  * Delete a garment. (ADMIN ONLY)
  */
-router.delete('/:id', requireAdmin, (req: AuthRequest, res: Response) => {
+router.delete('/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
-    const db = getDb();
     const { id } = req.params;
-
-    db.run('DELETE FROM garments WHERE id = ?', [id]);
-
-    saveDatabase();
+    await query('DELETE FROM garments WHERE id = $1', [id]);
     res.json({ success: true, deletedId: id });
   } catch (err) {
     console.error('Error deleting garment:', err);

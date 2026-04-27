@@ -3,7 +3,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { getDb, saveDatabase } from '../db.js';
+import { query } from '../db.js';
 
 const router = Router();
 
@@ -11,17 +11,9 @@ const router = Router();
  * GET /api/expenses
  * Returns all expenses, sorted by paymentDate descending.
  */
-router.get('/', (_req: Request, res: Response) => {
+router.get('/', async (_req: Request, res: Response) => {
   try {
-    const db = getDb();
-    const stmt = db.prepare('SELECT * FROM expenses ORDER BY paymentDate DESC');
-    const rows: any[] = [];
-
-    while (stmt.step()) {
-      rows.push(stmt.getAsObject());
-    }
-    stmt.free();
-
+    const { rows } = await query('SELECT * FROM expenses ORDER BY "paymentDate" DESC');
     res.json(rows);
   } catch (err) {
     console.error('Error fetching expenses:', err);
@@ -33,9 +25,8 @@ router.get('/', (_req: Request, res: Response) => {
  * POST /api/expenses
  * Create a new expense.
  */
-router.post('/', (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   try {
-    const db = getDb();
     const {
       id,
       category,
@@ -44,13 +35,12 @@ router.post('/', (req: Request, res: Response) => {
       paymentDate,
     } = req.body;
 
-    db.run(
-      `INSERT INTO expenses (id, category, description, amount, paymentDate)
-       VALUES (?, ?, ?, ?, ?)`,
+    await query(
+      `INSERT INTO expenses (id, category, description, amount, "paymentDate")
+       VALUES ($1, $2, $3, $4, $5)`,
       [id, category, description, amount, paymentDate]
     );
 
-    saveDatabase();
     res.status(201).json(req.body);
   } catch (err) {
     console.error('Error creating expense:', err);
@@ -62,9 +52,8 @@ router.post('/', (req: Request, res: Response) => {
  * PUT /api/expenses/:id
  * Update an existing expense.
  */
-router.put('/:id', (req: Request, res: Response) => {
+router.put('/:id', async (req: Request, res: Response) => {
   try {
-    const db = getDb();
     const { id } = req.params;
     const {
       category,
@@ -73,14 +62,13 @@ router.put('/:id', (req: Request, res: Response) => {
       paymentDate,
     } = req.body;
 
-    db.run(
+    await query(
       `UPDATE expenses 
-       SET category = ?, description = ?, amount = ?, paymentDate = ?
-       WHERE id = ?`,
+       SET category = $1, description = $2, amount = $3, "paymentDate" = $4
+       WHERE id = $5`,
       [category, description, amount, paymentDate, id]
     );
 
-    saveDatabase();
     res.json({ id, ...req.body });
   } catch (err) {
     console.error('Error updating expense:', err);
@@ -92,14 +80,10 @@ router.put('/:id', (req: Request, res: Response) => {
  * DELETE /api/expenses/:id
  * Delete an expense.
  */
-router.delete('/:id', (req: Request, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    const db = getDb();
     const { id } = req.params;
-
-    db.run('DELETE FROM expenses WHERE id = ?', [id]);
-
-    saveDatabase();
+    await query('DELETE FROM expenses WHERE id = $1', [id]);
     res.json({ success: true, deletedId: id });
   } catch (err) {
     console.error('Error deleting expense:', err);
