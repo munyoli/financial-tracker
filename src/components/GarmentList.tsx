@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { Garment, GarmentType, ComplexityLevel, ProductionStatus, Order } from '../types';
-import { formatCurrency, calculateGarmentMetrics, calculateRecommendedPrice, cn } from '../lib/utils';
+import { formatCurrency, calculateGarmentMetrics, calculateSimulationPrice, cn } from '../lib/utils';
 import { PROFIT_MARGIN_THRESHOLD, MIN_MARGIN_PERCENT, ESTIMATED_HOURS, DEFAULT_HOURLY_RATE, HOURLY_OVERHEAD, STALL_GOAL } from '../constants';
 import { 
   Plus, 
@@ -67,12 +67,12 @@ export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelet
     setEditingGarment(garment);
     if (garment) {
       const metrics = calculateGarmentMetrics(garment);
-      const recommended = calculateRecommendedPrice(garment.fabricCost, garment.otherMaterialsCost, garment.estimatedHours || 0);
+      const { retailPrice } = calculateSimulationPrice(garment.estimatedHours || 0, garment.fabricCost + garment.otherMaterialsCost);
       setFormLiveCost({
         selling: garment.sellingPrice,
         cost: metrics.totalCost,
         isCalculated: true,
-        recommendedPrice: recommended
+        recommendedPrice: retailPrice
       });
       setSelectedComplexity(garment.complexity);
     } else {
@@ -146,7 +146,7 @@ export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelet
       selling,
       cost: (fCost + oCost + (estHours * (DEFAULT_HOURLY_RATE + HOURLY_OVERHEAD))),
       isCalculated: true,
-      recommendedPrice: calculateRecommendedPrice(fCost, oCost, estHours)
+      recommendedPrice: calculateSimulationPrice(estHours, fCost + oCost).retailPrice
     });
   };
 
