@@ -16,7 +16,8 @@ import {
   Receipt,
   Users,
   LogOut,
-  Calculator
+  Calculator,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
@@ -35,7 +36,7 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
   const navItems = [
     ...(isAdmin ? [{ id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }] : []),
     ...(isAdmin ? [{ id: 'orders', label: 'Orders', icon: ShoppingBag }] : []),
-    { id: 'simulator', label: 'Simulator', icon: Calculator },
+    { id: 'simulator', label: 'Quote Simulator', icon: Sparkles },
     { id: 'garments', label: 'Garments', icon: Scissors },
     ...(isAdmin ? [{ id: 'expenses', label: 'Expenses', icon: Receipt }] : []),
     ...(isAdmin ? [{ id: 'overhead', label: 'Overhead', icon: Settings }] : []),

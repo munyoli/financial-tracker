@@ -21,7 +21,8 @@ import {
   Download,
   Target,
   TrendingUp as TrendingUpIcon,
-  ShoppingBag
+  ShoppingBag,
+  Calculator
 } from 'lucide-react';
 import Modal from './Modal';
 import { useAuth } from '../context/AuthContext';
@@ -34,9 +35,10 @@ interface GarmentListProps {
   onDelete: (id: string) => void;
   prefilledData?: Partial<Garment> | null;
   onClearPrefilled?: () => void;
+  setActiveTab: (tab: string) => void;
 }
 
-export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelete, prefilledData, onClearPrefilled }: GarmentListProps) {
+export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelete, prefilledData, onClearPrefilled, setActiveTab }: GarmentListProps) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -288,6 +290,13 @@ export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelet
           >
             <Download className="w-5 h-5" />
             Export CSV
+          </button>
+          <button
+            onClick={() => setActiveTab('simulator')}
+            className="flex items-center justify-center gap-2 bg-brand-50 text-brand-900 px-4 py-3 rounded-xl font-medium hover:bg-brand-100 transition-colors border border-brand-200"
+          >
+            <Calculator className="w-5 h-5" />
+            Simulator
           </button>
           <button
             onClick={() => openModal(null)}

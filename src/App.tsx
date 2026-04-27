@@ -72,6 +72,7 @@ function AppContent() {
             onDelete={deleteGarment}
             prefilledData={prefilledGarment}
             onClearPrefilled={() => setPrefilledGarment(null)}
+            setActiveTab={setActiveTab}
           />
         );
       case 'expenses':
