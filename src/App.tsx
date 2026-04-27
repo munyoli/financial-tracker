@@ -90,6 +90,7 @@ function AppContent() {
           <PreQuoteSimulator 
             onConfirm={(draft) => {
               setPrefilledGarment({
+                clientName: draft.clientName,
                 type: draft.type,
                 complexity: draft.complexity,
                 description: draft.description,

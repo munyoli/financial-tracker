@@ -65,7 +65,7 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
     await query(
       `INSERT INTO garments (id, "orderId", "clientName", type, description, complexity, "sellingPrice", "fabricCost", "otherMaterialsCost", "laborCost", "overheadAllocation", "startDate", "dueDate", status)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
-      [id, orderId, clientName, type, description, complexity, sellingPrice, fabricCost, otherMaterialsCost, laborCost, overheadAllocation || 0, startDate, dueDate, status]
+      [id, orderId || null, clientName, type, description, complexity, sellingPrice, fabricCost, otherMaterialsCost, laborCost, overheadAllocation || 0, startDate, dueDate, status]
     );
 
     res.status(201).json(req.body);
@@ -114,7 +114,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
              "sellingPrice" = $6, "fabricCost" = $7, "otherMaterialsCost" = $8, "laborCost" = $9,
              "overheadAllocation" = $10, "startDate" = $11, "dueDate" = $12, status = $13
          WHERE id = $14`,
-        [orderId, clientName, type, description, complexity, sellingPrice, fabricCost, otherMaterialsCost, laborCost, overheadAllocation || 0, startDate, dueDate, status, id]
+        [orderId || null, clientName, type, description, complexity, sellingPrice, fabricCost, otherMaterialsCost, laborCost, overheadAllocation || 0, startDate, dueDate, status, id]
       );
     }
 

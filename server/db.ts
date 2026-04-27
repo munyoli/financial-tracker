@@ -43,22 +43,22 @@ export async function initDatabase(): Promise<void> {
     await client.query(`
       CREATE TABLE IF NOT EXISTS garments (
         id TEXT PRIMARY KEY,
-        orderId TEXT NOT NULL,
-        clientName TEXT NOT NULL,
+        "orderId" TEXT,
+        "clientName" TEXT NOT NULL,
         type TEXT NOT NULL,
         description TEXT NOT NULL,
         complexity TEXT NOT NULL DEFAULT 'Medium',
-        sellingPrice REAL NOT NULL DEFAULT 0,
-        fabricCost REAL NOT NULL DEFAULT 0,
-        otherMaterialsCost REAL NOT NULL DEFAULT 0,
-        laborCost REAL NOT NULL DEFAULT 0,
-        overheadAllocation REAL NOT NULL DEFAULT 0,
-        estimatedHours REAL,
-        actualHours REAL,
-        startDate TEXT NOT NULL,
-        dueDate TEXT NOT NULL,
+        "sellingPrice" REAL NOT NULL DEFAULT 0,
+        "fabricCost" REAL NOT NULL DEFAULT 0,
+        "otherMaterialsCost" REAL NOT NULL DEFAULT 0,
+        "laborCost" REAL NOT NULL DEFAULT 0,
+        "overheadAllocation" REAL NOT NULL DEFAULT 0,
+        "estimatedHours" REAL,
+        "actualHours" REAL,
+        "startDate" TEXT NOT NULL,
+        "dueDate" TEXT NOT NULL,
         status TEXT NOT NULL DEFAULT 'Not Started',
-        CONSTRAINT fk_order FOREIGN KEY (orderId) REFERENCES orders(id) ON DELETE CASCADE
+        CONSTRAINT fk_order FOREIGN KEY ("orderId") REFERENCES orders(id) ON DELETE SET NULL
       )
     `);
 

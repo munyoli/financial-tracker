@@ -455,15 +455,25 @@ export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelet
                   <select
                     name="orderId"
                     defaultValue={editingGarment?.orderId}
-                    required
                     disabled={!isAdmin}
                     className="w-full px-4 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none bg-stone-50 disabled:opacity-50"
                   >
-                    <option value="">Select an order...</option>
+                    <option value="">No linked order (Standalone)</option>
                     {orders.map(o => (
                       <option key={o.id} value={o.id}>{o.clientName} ({o.id})</option>
                     ))}
                   </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-stone-700">Client Name</label>
+                  <input
+                    name="clientName"
+                    defaultValue={prefilledData?.clientName || editingGarment?.clientName}
+                    required
+                    disabled={!isAdmin}
+                    placeholder="e.g. Jane Doe"
+                    className="w-full px-4 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none bg-white disabled:bg-stone-50"
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">

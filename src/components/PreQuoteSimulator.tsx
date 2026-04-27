@@ -20,6 +20,7 @@ import Modal from './Modal';
 interface Draft {
   id: string;
   name: string;
+  clientName: string;
   type: GarmentType;
   complexity: ComplexityLevel;
   hours: number;
@@ -34,9 +35,9 @@ interface PreQuoteSimulatorProps {
 export default function PreQuoteSimulator({ onConfirm }: PreQuoteSimulatorProps) {
   const [activeDraftIdx, setActiveDraftIdx] = useState(0);
   const [drafts, setDrafts] = useState<Draft[]>([
-    { id: 'A', name: 'Option A', type: 'Dress', complexity: 'Moderate', hours: 10, materials: 5000, description: 'Standard Fabric' },
-    { id: 'B', name: 'Option B', type: 'Gown', complexity: 'Complex', hours: 20, materials: 15000, description: 'Luxury Silk' },
-    { id: 'C', name: 'Option C', type: 'Suit', complexity: 'Bridal/Couture', hours: 40, materials: 25000, description: 'High-Complexity' },
+    { id: 'A', name: 'Option A', clientName: '', type: 'Dress', complexity: 'Moderate', hours: 10, materials: 5000, description: 'Standard Fabric' },
+    { id: 'B', name: 'Option B', clientName: '', type: 'Gown', complexity: 'Complex', hours: 20, materials: 15000, description: 'Luxury Silk' },
+    { id: 'C', name: 'Option C', clientName: '', type: 'Suit', complexity: 'Bridal/Couture', hours: 40, materials: 25000, description: 'High-Complexity' },
   ]);
 
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
@@ -174,6 +175,16 @@ export default function PreQuoteSimulator({ onConfirm }: PreQuoteSimulatorProps)
                 <div className="space-y-4">
                   <label className="text-sm font-bold text-stone-700 uppercase tracking-wider">Garment Details</label>
                   <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-stone-500">Client Name</label>
+                      <input
+                        type="text"
+                        value={activeDraft.clientName}
+                        onChange={(e) => updateDraft({ clientName: e.target.value })}
+                        placeholder="e.g. Jane Doe"
+                        className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white outline-none"
+                      />
+                    </div>
                     <div className="space-y-2">
                       <label className="text-xs font-medium text-stone-500">Short Description (for Quote)</label>
                       <input
