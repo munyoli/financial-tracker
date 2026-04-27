@@ -4,7 +4,7 @@
  */
 
 export type GarmentType = 'Gown' | 'Dress' | 'Top' | 'Pants' | 'Suit';
-export type ComplexityLevel = 'Simple' | 'Moderate' | 'Complex' | 'Couture/Bridal';
+export type ComplexityLevel = 'Simple' | 'Moderate' | 'Complex' | 'Bridal/Couture';
 export type ProductionStatus = 'Not Started' | 'In Progress' | 'Fitting' | 'Done' | 'Delivered';
 export type PaymentStatus = 'Deposit' | 'Partial' | 'Paid';
 

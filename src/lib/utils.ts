@@ -24,18 +24,36 @@ export function formatCurrency(amount: number) {
   }).format(amount);
 }
 
-export function calculateRecommendedPrice(
-  fabricCost: number,
-  otherCost: number,
-  estimatedHours: number
+export function calculateSimulationPrice(
+  hours: number,
+  materialsCost: number
 ) {
-  const labor = estimatedHours * DEFAULT_HOURLY_RATE;
-  const overhead = estimatedHours * HOURLY_OVERHEAD;
-  const baseCost = fabricCost + otherCost + labor + overhead;
-  
-  // Markup: Apply a 1.3x multiplier (30% profit) to the total of (Labor + Overhead + Materials)
-  // Plus fixed Expansion Fund
-  return (baseCost * MARKUP_MULTIPLIER) + EXPANSION_FUND_PER_GARMENT;
+  // Stage 1 (Production Cost): Tier Hours × 715 (500 Labor + 215 Overhead)
+  const productionCost = hours * 715;
+
+  // Stage 2 (Total Base Cost): Add Raw Material Cost
+  const totalBaseCost = productionCost + materialsCost;
+
+  // Stage 3 (Retail Markup): 1.3x Profit Multiplier
+  const retailPrice = totalBaseCost * 1.3;
+
+  // Stage 4 (Luxury Rounding): Round up to nearest KES 500
+  const finalPrice = Math.ceil(retailPrice / 500) * 500;
+
+  return {
+    productionCost,
+    totalBaseCost, // This is the "Production Floor"
+    retailPrice: finalPrice,
+    expansionFund: finalPrice - totalBaseCost // 30% margin + rounding bonus
+  };
+}
+
+export function generateQuoteMessage(
+  description: string,
+  price: number,
+  hours: number
+) {
+  return `TwoStones Architectural ${description}: ${formatCurrency(price)}. Includes ${hours} hours of engineering and premium materials.`;
 }
 
 export function calculateGarmentMetrics(garment: Garment) {
@@ -43,30 +61,24 @@ export function calculateGarmentMetrics(garment: Garment) {
     ? garment.actualHours 
     : (garment.estimatedHours || 0);
 
-  const totalMaterialCost = garment.fabricCost + garment.otherMaterialsCost;
-  const laborCost = hours * DEFAULT_HOURLY_RATE;
-  const hourlyOverhead = hours * HOURLY_OVERHEAD;
-  
-  // Base cost including expansion fund as a fixed allocation
-  const baseCost = totalMaterialCost + laborCost + hourlyOverhead;
-  const totalCostIncludingExpansion = baseCost + EXPANSION_FUND_PER_GARMENT;
-  
-  const profit = garment.sellingPrice - totalCostIncludingExpansion;
-  const profitMargin = garment.sellingPrice > 0 ? (profit / garment.sellingPrice) * 100 : 0;
-  
-  // Calculate the specific 30% markup profit for the stall goal tally
-  // Markup Profit = Subtotal * 0.3
-  const markupProfit = baseCost * 0.3;
+  const materialsCost = garment.fabricCost + garment.otherMaterialsCost;
+  const metrics = calculateSimulationPrice(hours, materialsCost);
+
+  // If the selling price is already set (confirmed order), use it
+  const sellingPrice = garment.sellingPrice || metrics.retailPrice;
+  const profit = sellingPrice - metrics.totalBaseCost;
+  const profitMargin = sellingPrice > 0 ? (profit / sellingPrice) * 100 : 0;
 
   return {
-    totalMaterialCost,
-    laborCost,
-    hourlyOverhead,
-    baseCost,
-    totalCost: totalCostIncludingExpansion,
-    profit,
-    profitMargin,
-    markupProfit,
-    expansionFund: EXPANSION_FUND_PER_GARMENT
+    totalMaterialCost: materialsCost,
+    laborCost: hours * 500,
+    hourlyOverhead: hours * 215,
+    baseCost: metrics.totalBaseCost,
+    totalCost: metrics.totalBaseCost,
+    profit: profit,
+    profitMargin: profitMargin,
+    markupProfit: profit, // Use actual profit for stall goal
+    expansionFund: profit,
+    recommendedPrice: metrics.retailPrice
   };
 }

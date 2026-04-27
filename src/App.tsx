@@ -12,6 +12,7 @@ import ExpenseList from './components/ExpenseList';
 import OverheadView from './components/OverheadView';
 import Login from './components/Login';
 import TeamList from './components/TeamList';
+import PreQuoteSimulator from './components/PreQuoteSimulator';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { useStore } from './hooks/useStore';
 import { motion, AnimatePresence } from 'motion/react';
@@ -33,6 +34,7 @@ function AppContent() {
     updateExpense,
     deleteExpense
   } = useStore();
+  const [prefilledGarment, setPrefilledGarment] = React.useState<any>(null);
 
   if (isAuthLoading) {
     return <div className="min-h-screen bg-stone-100 flex items-center justify-center">Loading session...</div>;
@@ -67,7 +69,9 @@ function AppContent() {
             orders={orders} 
             onAdd={addGarment} 
             onUpdate={updateGarment} 
-            onDelete={deleteGarment} 
+            onDelete={deleteGarment}
+            prefilledData={prefilledGarment}
+            onClearPrefilled={() => setPrefilledGarment(null)}
           />
         );
       case 'expenses':
@@ -81,6 +85,22 @@ function AppContent() {
         );
       case 'overhead':
         return <OverheadView />;
+      case 'simulator':
+        return (
+          <PreQuoteSimulator 
+            onConfirm={(draft) => {
+              setPrefilledGarment({
+                type: draft.type,
+                complexity: draft.complexity,
+                description: draft.description,
+                sellingPrice: draft.finalPrice,
+                fabricCost: draft.materials,
+                estimatedHours: draft.hours
+              });
+              setActiveTab('garments');
+            }} 
+          />
+        );
       case 'team':
         return <TeamList />;
       default:

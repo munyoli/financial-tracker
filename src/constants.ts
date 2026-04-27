@@ -37,5 +37,5 @@ export const ESTIMATED_HOURS: Record<string, number> = {
   'Simple': 3,
   'Moderate': 10,
   'Complex': 20,
-  'Bridal': 40,
+  'Bridal/Couture': 40,
 };

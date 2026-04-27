@@ -25,18 +25,21 @@ import {
   Clock, 
   DollarSign,
   CheckCircle2,
-  ArrowUpRight,
-  ArrowDownRight,
-  Target
+  ArrowUpRight, 
+  ArrowDownRight, 
+  Target,
+  Calculator,
+  ArrowRight
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface DashboardProps {
   orders: Order[];
   garments: Garment[];
+  setActiveTab?: (tab: string) => void;
 }
 
-export default function Dashboard({ orders, garments }: DashboardProps) {
+export default function Dashboard({ orders, garments, setActiveTab }: DashboardProps) {
   const metrics = React.useMemo(() => {
     const totalRevenue = garments.reduce((sum, g) => sum + g.sellingPrice, 0);
     const garmentMetrics = garments.map(calculateGarmentMetrics);
@@ -199,6 +202,28 @@ export default function Dashboard({ orders, garments }: DashboardProps) {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Simulator Quick Link */}
+      <div className="bg-white rounded-3xl p-8 border border-stone-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8">
+        <div className="flex items-center gap-6">
+          <div className="p-4 bg-brand-50 rounded-[2rem] text-brand-600">
+            <Calculator className="w-10 h-10" />
+          </div>
+          <div>
+            <h3 className="text-2xl font-serif font-bold text-stone-900">Pre-Quote Simulation Tool</h3>
+            <p className="text-stone-500 mt-1 max-w-lg">
+              Analyze pricing options, generate professional client quotes, and compare material costs before committing to the ledger.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => setActiveTab?.('simulator')}
+          className="flex items-center justify-center gap-3 px-8 py-4 bg-brand-900 text-white rounded-2xl font-bold hover:bg-brand-800 transition-all group whitespace-nowrap shadow-xl shadow-brand-900/20"
+        >
+          Launch Simulation Workspace
+          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+        </button>
       </div>
     </div>
   );

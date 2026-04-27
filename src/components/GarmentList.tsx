@@ -32,9 +32,11 @@ interface GarmentListProps {
   onAdd: (garment: Garment) => void;
   onUpdate: (garment: Garment) => void;
   onDelete: (id: string) => void;
+  prefilledData?: Partial<Garment> | null;
+  onClearPrefilled?: () => void;
 }
 
-export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelete }: GarmentListProps) {
+export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelete, prefilledData, onClearPrefilled }: GarmentListProps) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -79,6 +81,21 @@ export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelet
     }
     setIsModalOpen(true);
   };
+
+  // Handle prefilled data from Simulator
+  React.useEffect(() => {
+    if (prefilledData) {
+      setEditingGarment(null);
+      setFormLiveCost({
+        selling: prefilledData.sellingPrice || 0,
+        cost: (prefilledData.fabricCost || 0) + ((prefilledData.estimatedHours || 0) * 715),
+        isCalculated: true,
+        recommendedPrice: prefilledData.sellingPrice || 0
+      });
+      setSelectedComplexity(prefilledData.complexity || 'Moderate');
+      setIsModalOpen(true);
+    }
+  }, [prefilledData]);
 
   const handleComplexityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedComplexity(e.target.value);
@@ -419,9 +436,11 @@ export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelet
         </div>
       </div>
 
-      <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          if (onClearPrefilled) onClearPrefilled();
+        }}
         title={editingGarment ? 'Edit Garment' : 'Add New Garment'}
         className="max-w-3xl"
       >
@@ -451,7 +470,7 @@ export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelet
                     <label className="text-sm font-medium text-stone-700">Garment Type</label>
                     <select
                       name="type"
-                      defaultValue={editingGarment?.type || 'Dress'}
+                      defaultValue={prefilledData?.type || editingGarment?.type || 'Dress'}
                       className="w-full px-4 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none bg-white"
                     >
                       <option value="Gown">Gown</option>
@@ -480,7 +499,7 @@ export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelet
                   <label className="text-sm font-medium text-stone-700">Description</label>
                   <input
                     name="description"
-                    defaultValue={editingGarment?.description}
+                    defaultValue={prefilledData?.description || editingGarment?.description}
                     required
                     disabled={!isAdmin}
                     placeholder="e.g. Silk Wedding Gown with Lace"
@@ -524,7 +543,7 @@ export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelet
                     <input
                       name="sellingPrice"
                       type="number"
-                      defaultValue={editingGarment?.sellingPrice}
+                      defaultValue={prefilledData?.sellingPrice || editingGarment?.sellingPrice}
                       required
                       className="w-full px-4 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none"
                     />
@@ -540,7 +559,7 @@ export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelet
                       <input
                         name="fabricCost"
                         type="number"
-                        defaultValue={editingGarment?.fabricCost}
+                        defaultValue={prefilledData?.fabricCost || editingGarment?.fabricCost}
                         required
                         className="w-full px-4 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none"
                       />
@@ -562,7 +581,7 @@ export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelet
                       <input
                         name="estimatedHours"
                         type="number"
-                        defaultValue={editingGarment?.estimatedHours || ESTIMATED_HOURS[selectedComplexity] || 0}
+                        defaultValue={prefilledData?.estimatedHours || editingGarment?.estimatedHours || ESTIMATED_HOURS[selectedComplexity] || 0}
                         required
                         className="w-full px-4 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none bg-stone-50"
                       />
