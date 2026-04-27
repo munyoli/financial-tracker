@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export type GarmentType = 'Gown' | 'Dress' | 'Top';
-export type ComplexityLevel = 'Simple' | 'Medium' | 'Complex';
+export type GarmentType = 'Gown' | 'Dress' | 'Top' | 'Pants' | 'Suit';
+export type ComplexityLevel = 'Simple' | 'Moderate' | 'Complex' | 'Couture/Bridal';
 export type ProductionStatus = 'Not Started' | 'In Progress' | 'Fitting' | 'Done' | 'Delivered';
 export type PaymentStatus = 'Deposit' | 'Partial' | 'Paid';
 
@@ -30,6 +30,8 @@ export interface Garment {
   sellingPrice: number;
   fabricCost: number;
   otherMaterialsCost: number;
+  estimatedHours?: number;
+  actualHours?: number;
   laborCost: number;
   overheadAllocation: number;
   startDate: string;
@@ -48,4 +50,12 @@ export interface OverheadConfig {
 export interface GarmentWeight {
   type: GarmentType;
   weight: number;
+}
+
+export interface Expense {
+  id: string;
+  category: string;
+  description: string;
+  amount: number;
+  paymentDate: string;
 }

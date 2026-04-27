@@ -6,7 +6,7 @@
 import React from 'react';
 import { Order, Garment } from '../types';
 import { calculateGarmentMetrics, formatCurrency } from '../lib/utils';
-import { PROFIT_MARGIN_THRESHOLD } from '../constants';
+import { PROFIT_MARGIN_THRESHOLD, STALL_GOAL } from '../constants';
 import { 
   BarChart, 
   Bar, 
@@ -26,7 +26,8 @@ import {
   DollarSign,
   CheckCircle2,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Target
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -69,6 +70,12 @@ export default function Dashboard({ orders, garments }: DashboardProps) {
       return dueDate < now && o.paymentStatus !== 'Paid';
     }).length;
 
+    const stallGoalProfit = garments.reduce((sum, g) => {
+      if (['Not Started'].includes(g.status)) return sum;
+      const { markupProfit } = calculateGarmentMetrics(g);
+      return sum + markupProfit;
+    }, 0);
+
     return {
       totalRevenue,
       totalProfit,
@@ -79,14 +86,15 @@ export default function Dashboard({ orders, garments }: DashboardProps) {
       lowProfitGarments,
       lossMakingGarments,
       overdueOrders,
-      typeStats
+      typeStats,
+      stallGoalProfit
     };
   }, [orders, garments]);
 
   const statCards = [
     { label: 'Total Revenue', value: formatCurrency(metrics.totalRevenue), icon: DollarSign, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Total Profit', value: formatCurrency(metrics.totalProfit), icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Avg Profit/Item', value: formatCurrency(metrics.avgProfitPerGarment), icon: ArrowUpRight, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Stall Goal Tally', value: formatCurrency(metrics.stallGoalProfit), icon: Target, color: 'text-brand-600', bg: 'bg-brand-50' },
     { label: 'Outstanding', value: formatCurrency(metrics.outstandingBalance), icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50' },
   ];
 

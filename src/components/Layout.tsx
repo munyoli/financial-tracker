@@ -12,8 +12,12 @@ import {
   Settings, 
   Menu, 
   X,
-  TrendingUp
+  TrendingUp,
+  Receipt,
+  Users,
+  LogOut
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface LayoutProps {
@@ -24,12 +28,16 @@ interface LayoutProps {
 
 export default function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const { user, logout } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'orders', label: 'Orders', icon: ShoppingBag },
+    ...(isAdmin ? [{ id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }] : []),
+    ...(isAdmin ? [{ id: 'orders', label: 'Orders', icon: ShoppingBag }] : []),
     { id: 'garments', label: 'Garments', icon: Scissors },
-    { id: 'overhead', label: 'Overhead', icon: Settings },
+    ...(isAdmin ? [{ id: 'expenses', label: 'Expenses', icon: Receipt }] : []),
+    ...(isAdmin ? [{ id: 'overhead', label: 'Overhead', icon: Settings }] : []),
+    ...(isAdmin ? [{ id: 'team', label: 'Team', icon: Users }] : []),
   ];
 
   return (
@@ -61,11 +69,21 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
             </button>
           ))}
         </nav>
-        <div className="p-4 border-t border-stone-100">
+        <div className="p-4 border-t border-stone-100 space-y-2">
           <div className="bg-stone-900 rounded-2xl p-4 text-white">
             <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mb-1">Status</p>
-            <p className="text-sm font-medium">Production Active</p>
+            <p className="text-sm font-medium flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              {user?.name || 'Logged in'}
+            </p>
           </div>
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+            Sign Out
+          </button>
         </div>
       </aside>
 
@@ -110,6 +128,17 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
                   {item.label}
                 </button>
               ))}
+              <hr className="my-2 border-stone-100" />
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  logout();
+                }}
+                className="w-full flex items-center gap-3 px-4 py-4 rounded-xl text-lg font-medium text-red-600"
+              >
+                <LogOut className="w-6 h-6" />
+                Sign Out
+              </button>
             </nav>
           </motion.div>
         )}

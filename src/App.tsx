@@ -8,12 +8,17 @@ import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import OrderList from './components/OrderList';
 import GarmentList from './components/GarmentList';
+import ExpenseList from './components/ExpenseList';
 import OverheadView from './components/OverheadView';
+import Login from './components/Login';
+import TeamList from './components/TeamList';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { useStore } from './hooks/useStore';
 import { motion, AnimatePresence } from 'motion/react';
 
-export default function App() {
-  const [activeTab, setActiveTab] = React.useState('dashboard');
+function AppContent() {
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const [activeTab, setActiveTab] = React.useState('garments');
   const { 
     orders, 
     garments, 
@@ -22,8 +27,25 @@ export default function App() {
     deleteOrder, 
     addGarment, 
     updateGarment, 
-    deleteGarment 
+    deleteGarment,
+    expenses,
+    addExpense,
+    updateExpense,
+    deleteExpense
   } = useStore();
+
+  if (isAuthLoading) {
+    return <div className="min-h-screen bg-stone-100 flex items-center justify-center">Loading session...</div>;
+  }
+
+  if (!user) {
+    return <Login />;
+  }
+
+  // Force navigate staff back to garments if they somehow try to view unauthorized tabs
+  if (user.role === 'STAFF' && ['dashboard', 'orders', 'expenses', 'overhead', 'team'].includes(activeTab)) {
+    setActiveTab('garments');
+  }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -48,8 +70,19 @@ export default function App() {
             onDelete={deleteGarment} 
           />
         );
+      case 'expenses':
+        return (
+          <ExpenseList 
+            expenses={expenses} 
+            onAdd={addExpense} 
+            onUpdate={updateExpense} 
+            onDelete={deleteExpense} 
+          />
+        );
       case 'overhead':
         return <OverheadView />;
+      case 'team':
+        return <TeamList />;
       default:
         return <Dashboard orders={orders} garments={garments} />;
     }
@@ -72,3 +105,10 @@ export default function App() {
   );
 }
 
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}
