@@ -22,7 +22,7 @@ export interface Order {
 
 export interface Garment {
   id: string;
-  orderId: string;
+  orderId: string | null;
   clientName: string;
   type: GarmentType;
   description: string;

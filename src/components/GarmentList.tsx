@@ -164,8 +164,8 @@ export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelet
 
     const garmentData: Garment = {
       id: editingGarment?.id || `GRM-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-      orderId,
-      clientName: selectedOrder?.clientName || 'Unknown',
+      orderId: orderId || null,
+      clientName: (formData.get('clientName') as string) || selectedOrder?.clientName || 'Unknown',
       type: formData.get('type') as GarmentType,
       description: formData.get('description') as string,
       complexity: formData.get('complexity') as ComplexityLevel,
