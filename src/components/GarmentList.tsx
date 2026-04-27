@@ -435,7 +435,7 @@ export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelet
           </table>
         </div>
       </div>
-
+      <Modal
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
