@@ -15,7 +15,8 @@ import {
   TrendingUp,
   Receipt,
   Users,
-  LogOut
+  LogOut,
+  Calculator
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
