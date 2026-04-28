@@ -9,7 +9,21 @@ import { GARMENT_WEIGHTS, TOTAL_MONTHLY_OVERHEAD } from '../constants';
 import { format, parseISO } from 'date-fns';
 import { syncManager } from '../lib/SyncManager';
 
-const API_BASE = '/api';
+const getApiBase = () => {
+  // Use the PC's IP address for ALL mobile/native environments
+  const isNative = window.location.hostname === 'localhost' && !window.location.port;
+  const isAndroid = /android/i.test(navigator.userAgent);
+
+  if (isNative || isAndroid) {
+    return 'http://192.168.0.102:5000/api';
+  }
+
+  // Fallback for local browser development (Vite proxy)
+  return '/api';
+};
+
+const API_BASE = getApiBase();
+console.log('API_BASE initialized as:', API_BASE);
 
 /**
  * Fetch helper with error handling.
@@ -22,10 +36,12 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${url}`, {
+  const fullUrl = `${API_BASE}${url}`;
+  const res = await fetch(fullUrl, {
     headers,
     ...options,
   });
+
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.error || `API error: ${res.status}`);
@@ -55,12 +71,10 @@ export function useStore() {
         setGarments(garmentsData);
         setExpenses(expensesData);
         
-        // Save for offline fallback
         localStorage.setItem('atelier_orders', JSON.stringify(ordersData));
         localStorage.setItem('atelier_garments', JSON.stringify(garmentsData));
       } catch (err) {
         console.error('Failed to load data from server:', err);
-        // Fallback: try localStorage if server is down
         const savedOrders = localStorage.getItem('atelier_orders');
         const savedGarments = localStorage.getItem('atelier_garments');
         if (savedOrders) setOrders(JSON.parse(savedOrders));
@@ -73,21 +87,17 @@ export function useStore() {
     else setLoading(false);
   }, [isOnline]);
 
-  // Offline/Online listeners
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
-  // Sync Logic
   useEffect(() => {
     if (isOnline && pendingCount > 0 && !isSyncing) {
       const performSync = async () => {
@@ -100,7 +110,6 @@ export function useStore() {
     }
   }, [isOnline, pendingCount, isSyncing]);
 
-  // Periodic Sync Check
   useEffect(() => {
     const interval = setInterval(() => {
       setPendingCount(syncManager.getPendingCount());
@@ -108,11 +117,8 @@ export function useStore() {
     return () => clearInterval(interval);
   }, []);
 
-  // Calculate overhead allocation for each garment
   const garmentsWithOverhead = useMemo(() => {
-    // Group garments by month (using dueDate as the "completion" month)
     const monthlyWeights: Record<string, number> = {};
-    
     garments.forEach(g => {
       const monthKey = format(parseISO(g.dueDate), 'yyyy-MM');
       const weight = GARMENT_WEIGHTS[g.type] || 0;
@@ -126,11 +132,7 @@ export function useStore() {
       const overheadAllocation = totalMonthlyWeight > 0 
         ? (weight / totalMonthlyWeight) * TOTAL_MONTHLY_OVERHEAD 
         : 0;
-
-      return {
-        ...g,
-        overheadAllocation,
-      };
+      return { ...g, overheadAllocation };
     });
   }, [garments]);
 
@@ -141,16 +143,10 @@ export function useStore() {
       setPendingCount(syncManager.getPendingCount());
       return;
     }
-
     try {
-      await apiFetch('/orders', {
-        method: 'POST',
-        body: JSON.stringify(order),
-      });
+      await apiFetch('/orders', { method: 'POST', body: JSON.stringify(order) });
       setOrders(prev => [...prev, order]);
     } catch (err) {
-      console.error('Failed to add order:', err);
-      // Fallback to offline if API fails
       syncManager.enqueue('order', 'POST', '/orders', order);
       setPendingCount(syncManager.getPendingCount());
     }
@@ -158,14 +154,9 @@ export function useStore() {
 
   const updateOrder = useCallback(async (updatedOrder: Order) => {
     try {
-      await apiFetch(`/orders/${updatedOrder.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(updatedOrder),
-      });
+      await apiFetch(`/orders/${updatedOrder.id}`, { method: 'PUT', body: JSON.stringify(updatedOrder) });
       setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
-    } catch (err) {
-      console.error('Failed to update order:', err);
-    }
+    } catch (err) { console.error(err); }
   }, []);
 
   const deleteOrder = useCallback(async (id: string) => {
@@ -173,9 +164,7 @@ export function useStore() {
       await apiFetch(`/orders/${id}`, { method: 'DELETE' });
       setOrders(prev => prev.filter(o => o.id !== id));
       setGarments(prev => prev.filter(g => g.orderId !== id));
-    } catch (err) {
-      console.error('Failed to delete order:', err);
-    }
+    } catch (err) { console.error(err); }
   }, []);
 
   const addGarment = useCallback(async (garment: Garment) => {
@@ -185,16 +174,10 @@ export function useStore() {
       setPendingCount(syncManager.getPendingCount());
       return;
     }
-
     try {
-      await apiFetch('/garments', {
-        method: 'POST',
-        body: JSON.stringify(garment),
-      });
+      await apiFetch('/garments', { method: 'POST', body: JSON.stringify(garment) });
       setGarments(prev => [...prev, garment]);
     } catch (err) {
-      console.error('Failed to add garment:', err);
-      // Fallback to offline
       syncManager.enqueue('garment', 'POST', '/garments', garment);
       setPendingCount(syncManager.getPendingCount());
     }
@@ -202,23 +185,16 @@ export function useStore() {
 
   const updateGarment = useCallback(async (updatedGarment: Garment) => {
     try {
-      await apiFetch(`/garments/${updatedGarment.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(updatedGarment),
-      });
+      await apiFetch(`/garments/${updatedGarment.id}`, { method: 'PUT', body: JSON.stringify(updatedGarment) });
       setGarments(prev => prev.map(g => g.id === updatedGarment.id ? updatedGarment : g));
-    } catch (err) {
-      console.error('Failed to update garment:', err);
-    }
+    } catch (err) { console.error(err); }
   }, []);
 
   const deleteGarment = useCallback(async (id: string) => {
     try {
       await apiFetch(`/garments/${id}`, { method: 'DELETE' });
       setGarments(prev => prev.filter(g => g.id !== id));
-    } catch (err) {
-      console.error('Failed to delete garment:', err);
-    }
+    } catch (err) { console.error(err); }
   }, []);
 
   const addExpense = useCallback(async (expense: Expense) => {
@@ -228,16 +204,10 @@ export function useStore() {
       setPendingCount(syncManager.getPendingCount());
       return;
     }
-
     try {
-      await apiFetch('/expenses', {
-        method: 'POST',
-        body: JSON.stringify(expense),
-      });
+      await apiFetch('/expenses', { method: 'POST', body: JSON.stringify(expense) });
       setExpenses(prev => [expense, ...prev]);
     } catch (err) {
-      console.error('Failed to add expense:', err);
-      // Fallback to offline
       syncManager.enqueue('expense', 'POST', '/expenses', expense);
       setPendingCount(syncManager.getPendingCount());
     }
@@ -245,23 +215,16 @@ export function useStore() {
 
   const updateExpense = useCallback(async (updatedExpense: Expense) => {
     try {
-      await apiFetch(`/expenses/${updatedExpense.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(updatedExpense),
-      });
+      await apiFetch(`/expenses/${updatedExpense.id}`, { method: 'PUT', body: JSON.stringify(updatedExpense) });
       setExpenses(prev => prev.map(e => e.id === updatedExpense.id ? updatedExpense : e));
-    } catch (err) {
-      console.error('Failed to update expense:', err);
-    }
+    } catch (err) { console.error(err); }
   }, []);
 
   const deleteExpense = useCallback(async (id: string) => {
     try {
       await apiFetch(`/expenses/${id}`, { method: 'DELETE' });
       setExpenses(prev => prev.filter(e => e.id !== id));
-    } catch (err) {
-      console.error('Failed to delete expense:', err);
-    }
+    } catch (err) { console.error(err); }
   }, []);
 
   return {

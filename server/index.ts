@@ -25,7 +25,7 @@ async function main() {
   app.use((_req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     if (_req.method === 'OPTIONS') {
       return res.sendStatus(200);
     }
@@ -57,15 +57,11 @@ async function main() {
     });
   }
 
-  // Start server
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running at http://localhost:${PORT}`);
-    console.log(`📡 API endpoints:`);
-    console.log(`   GET/POST       /api/orders`);
-    console.log(`   PUT/DELETE      /api/orders/:id`);
-    console.log(`   GET/POST       /api/garments`);
-    console.log(`   PUT/DELETE      /api/garments/:id`);
-    console.log(`   GET            /api/health`);
+  // Start server - Listening on 0.0.0.0 to allow network access
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server running on all interfaces at port ${PORT}`);
+    console.log(`📡 Local:   http://localhost:${PORT}`);
+    console.log(`📡 Network: http://192.168.0.102:${PORT}`);
   });
 }
 

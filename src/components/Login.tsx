@@ -2,6 +2,22 @@ import React, { useState } from 'react';
 import { Scissors } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
+// Helper to determine the API URL base
+const getApiBase = () => {
+  // If we are in a browser at localhost:3000, use relative proxy
+  const isWebDev = window.location.hostname === 'localhost' &&
+                   (window.location.port === '3000' || window.location.port === '5173');
+
+  if (isWebDev) {
+    return ''; // Relative path
+  }
+
+  // Otherwise, use the absolute IP of your PC
+  return 'http://192.168.0.102:5000';
+};
+
+const API_BASE = getApiBase();
+
 export default function Login() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
@@ -15,20 +31,31 @@ export default function Login() {
     setError('');
 
     try {
-      const res = await fetch('/api/auth/login', {
+      const url = `${API_BASE}/api/auth/login`;
+      console.log('Attempting login at:', url);
+
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.error || 'Login failed');
-      }
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        const data = await res.json();
 
-      login(data.token, data.user);
+        if (!res.ok) {
+          throw new Error(data.error || 'Login failed');
+        }
+
+        login(data.token, data.user);
+      } else {
+        const text = await res.text();
+        console.error('Unexpected response content:', text);
+        throw new Error('Server returned an HTML page instead of JSON. This usually means the API path is incorrect or the request is being intercepted by the web server.');
+      }
     } catch (err: any) {
+      console.error('Login error:', err);
       setError(err.message);
     } finally {
       setIsLoading(false);
