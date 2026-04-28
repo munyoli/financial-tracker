@@ -7,6 +7,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Order, Garment, GarmentType, Expense } from '../types';
 import { GARMENT_WEIGHTS, TOTAL_MONTHLY_OVERHEAD } from '../constants';
 import { format, parseISO } from 'date-fns';
+import { syncManager } from '../lib/SyncManager';
 
 const API_BASE = '/api';
 
@@ -37,6 +38,9 @@ export function useStore() {
   const [garments, setGarments] = useState<Garment[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isOnline, setIsOnline] = useState(window.navigator.onLine);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [pendingCount, setPendingCount] = useState(syncManager.getPendingCount());
 
   // Load initial data from the API
   useEffect(() => {
@@ -50,6 +54,10 @@ export function useStore() {
         setOrders(ordersData);
         setGarments(garmentsData);
         setExpenses(expensesData);
+        
+        // Save for offline fallback
+        localStorage.setItem('atelier_orders', JSON.stringify(ordersData));
+        localStorage.setItem('atelier_garments', JSON.stringify(garmentsData));
       } catch (err) {
         console.error('Failed to load data from server:', err);
         // Fallback: try localStorage if server is down
@@ -61,7 +69,43 @@ export function useStore() {
         setLoading(false);
       }
     }
-    loadData();
+    if (isOnline) loadData();
+    else setLoading(false);
+  }, [isOnline]);
+
+  // Offline/Online listeners
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Sync Logic
+  useEffect(() => {
+    if (isOnline && pendingCount > 0 && !isSyncing) {
+      const performSync = async () => {
+        setIsSyncing(true);
+        await syncManager.processQueue(apiFetch);
+        setPendingCount(syncManager.getPendingCount());
+        setIsSyncing(false);
+      };
+      performSync();
+    }
+  }, [isOnline, pendingCount, isSyncing]);
+
+  // Periodic Sync Check
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPendingCount(syncManager.getPendingCount());
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   // Calculate overhead allocation for each garment
@@ -91,6 +135,13 @@ export function useStore() {
   }, [garments]);
 
   const addOrder = useCallback(async (order: Order) => {
+    if (!isOnline) {
+      syncManager.enqueue('order', 'POST', '/orders', order);
+      setOrders(prev => [...prev, order]);
+      setPendingCount(syncManager.getPendingCount());
+      return;
+    }
+
     try {
       await apiFetch('/orders', {
         method: 'POST',
@@ -99,8 +150,11 @@ export function useStore() {
       setOrders(prev => [...prev, order]);
     } catch (err) {
       console.error('Failed to add order:', err);
+      // Fallback to offline if API fails
+      syncManager.enqueue('order', 'POST', '/orders', order);
+      setPendingCount(syncManager.getPendingCount());
     }
-  }, []);
+  }, [isOnline]);
 
   const updateOrder = useCallback(async (updatedOrder: Order) => {
     try {
@@ -125,6 +179,13 @@ export function useStore() {
   }, []);
 
   const addGarment = useCallback(async (garment: Garment) => {
+    if (!isOnline) {
+      syncManager.enqueue('garment', 'POST', '/garments', garment);
+      setGarments(prev => [...prev, garment]);
+      setPendingCount(syncManager.getPendingCount());
+      return;
+    }
+
     try {
       await apiFetch('/garments', {
         method: 'POST',
@@ -133,8 +194,11 @@ export function useStore() {
       setGarments(prev => [...prev, garment]);
     } catch (err) {
       console.error('Failed to add garment:', err);
+      // Fallback to offline
+      syncManager.enqueue('garment', 'POST', '/garments', garment);
+      setPendingCount(syncManager.getPendingCount());
     }
-  }, []);
+  }, [isOnline]);
 
   const updateGarment = useCallback(async (updatedGarment: Garment) => {
     try {
@@ -158,6 +222,13 @@ export function useStore() {
   }, []);
 
   const addExpense = useCallback(async (expense: Expense) => {
+    if (!isOnline) {
+      syncManager.enqueue('expense', 'POST', '/expenses', expense);
+      setExpenses(prev => [expense, ...prev]);
+      setPendingCount(syncManager.getPendingCount());
+      return;
+    }
+
     try {
       await apiFetch('/expenses', {
         method: 'POST',
@@ -166,8 +237,11 @@ export function useStore() {
       setExpenses(prev => [expense, ...prev]);
     } catch (err) {
       console.error('Failed to add expense:', err);
+      // Fallback to offline
+      syncManager.enqueue('expense', 'POST', '/expenses', expense);
+      setPendingCount(syncManager.getPendingCount());
     }
-  }, []);
+  }, [isOnline]);
 
   const updateExpense = useCallback(async (updatedExpense: Expense) => {
     try {
@@ -204,5 +278,8 @@ export function useStore() {
     addExpense,
     updateExpense,
     deleteExpense,
+    isOnline,
+    isSyncing,
+    pendingCount
   };
 }

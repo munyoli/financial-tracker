@@ -17,7 +17,10 @@ import {
   Users,
   LogOut,
   Calculator,
-  Sparkles
+  Sparkles,
+  CloudOff,
+  Cloud,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
@@ -26,9 +29,19 @@ interface LayoutProps {
   children: React.ReactNode;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  isOnline?: boolean;
+  isSyncing?: boolean;
+  pendingCount?: number;
 }
 
-export default function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
+export default function Layout({ 
+  children, 
+  activeTab, 
+  setActiveTab, 
+  isOnline = true, 
+  isSyncing = false, 
+  pendingCount = 0 
+}: LayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const { user, logout } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
@@ -74,11 +87,32 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
         </nav>
         <div className="p-4 border-t border-stone-100 space-y-2">
           <div className="bg-stone-900 rounded-2xl p-4 text-white">
-            <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mb-1">Status</p>
-            <p className="text-sm font-medium flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              {user?.name || 'Logged in'}
+            <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mb-2 flex items-center justify-between">
+              Status
+              {isOnline ? (
+                <span className="flex items-center gap-1 text-[10px] text-emerald-400">
+                  <Cloud className="w-3 h-3" /> Online
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-[10px] text-orange-400">
+                  <CloudOff className="w-3 h-3" /> Offline
+                </span>
+              )}
             </p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium flex items-center gap-2">
+                <span className={cn("w-2 h-2 rounded-full", isOnline ? "bg-emerald-500" : "bg-orange-500")}></span>
+                {user?.name || 'Logged in'}
+              </p>
+              {isSyncing && (
+                <RefreshCw className="w-4 h-4 text-brand-400 animate-spin" />
+              )}
+            </div>
+            {pendingCount > 0 && (
+              <p className="text-[10px] text-brand-300 mt-2 font-bold uppercase tracking-tighter">
+                {pendingCount} Pending Sync...
+              </p>
+            )}
           </div>
           <button
             onClick={logout}

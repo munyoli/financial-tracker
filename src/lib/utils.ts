@@ -28,23 +28,33 @@ export function calculateSimulationPrice(
   hours: number,
   materialsCost: number
 ) {
-  // Stage 1 (Production Cost): Tier Hours × 715 (500 Labor + 215 Overhead)
-  const productionCost = hours * 715;
+  // 1. Production Floor: Tier Hours × (500 Labor + 215 Overhead) + Materials
+  const laborCost = hours * DEFAULT_HOURLY_RATE;
+  const overhead = hours * HOURLY_OVERHEAD;
+  const productionFloor = laborCost + overhead + materialsCost;
 
-  // Stage 2 (Total Base Cost): Add Raw Material Cost
-  const totalBaseCost = productionCost + materialsCost;
+  // 2. Base Price: Apply 1.3x Markup to Production Floor
+  const priceBeforeExpansion = productionFloor * MARKUP_MULTIPLIER;
 
-  // Stage 3 (Retail Markup): 1.3x Profit Multiplier
-  const retailPrice = totalBaseCost * 1.3;
+  // 3. Expansion Fund: Add fixed amount
+  const expansionFund = EXPANSION_FUND_PER_GARMENT;
 
-  // Stage 4 (Luxury Rounding): Round up to nearest KES 500
-  const finalPrice = Math.ceil(retailPrice / 500) * 500;
+  // 4. Total Price before Rounding
+  const priceAfterExpansion = priceBeforeExpansion + expansionFund;
+
+  // 5. Luxury Rounding: Round up to nearest KES 500
+  const finalPrice = Math.ceil(priceAfterExpansion / 500) * 500;
 
   return {
-    productionCost,
-    totalBaseCost, // This is the "Production Floor"
+    laborCost,
+    overhead,
+    materialsCost,
+    productionFloor,
+    priceBeforeExpansion,
+    expansionFund,
+    priceAfterExpansion,
     retailPrice: finalPrice,
-    expansionFund: finalPrice - totalBaseCost // 30% margin + rounding bonus
+    roundingBonus: finalPrice - priceAfterExpansion
   };
 }
 
@@ -66,15 +76,15 @@ export function calculateGarmentMetrics(garment: Garment) {
 
   // If the selling price is already set (confirmed order), use it
   const sellingPrice = garment.sellingPrice || metrics.retailPrice;
-  const profit = sellingPrice - metrics.totalBaseCost;
+  const profit = sellingPrice - metrics.productionFloor;
   const profitMargin = sellingPrice > 0 ? (profit / sellingPrice) * 100 : 0;
 
   return {
     totalMaterialCost: materialsCost,
-    laborCost: hours * 500,
-    hourlyOverhead: hours * 215,
-    baseCost: metrics.totalBaseCost,
-    totalCost: metrics.totalBaseCost,
+    laborCost: metrics.laborCost,
+    hourlyOverhead: metrics.overhead,
+    baseCost: metrics.productionFloor,
+    totalCost: metrics.productionFloor,
     profit: profit,
     profitMargin: profitMargin,
     markupProfit: profit, // Use actual profit for stall goal

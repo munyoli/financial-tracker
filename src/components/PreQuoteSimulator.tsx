@@ -12,8 +12,8 @@ import {
   MessageSquare,
   Sparkles
 } from 'lucide-react';
-import { ComplexityLevel, GarmentType } from '../types';
-import { ESTIMATED_HOURS } from '../constants';
+import { ComplexityLevel, GarmentType, Order } from '../types';
+import { ESTIMATED_HOURS, MARKUP_MULTIPLIER, EXPANSION_FUND_PER_GARMENT } from '../constants';
 import { formatCurrency, calculateSimulationPrice, generateQuoteMessage, cn } from '../lib/utils';
 import Modal from './Modal';
 
@@ -26,13 +26,15 @@ interface Draft {
   hours: number;
   materials: number;
   description: string;
+  orderId?: string;
 }
 
 interface PreQuoteSimulatorProps {
+  orders: Order[];
   onConfirm: (draft: Draft & { finalPrice: number }) => void;
 }
 
-export default function PreQuoteSimulator({ onConfirm }: PreQuoteSimulatorProps) {
+export default function PreQuoteSimulator({ orders, onConfirm }: PreQuoteSimulatorProps) {
   const [activeDraftIdx, setActiveDraftIdx] = useState(0);
   const [drafts, setDrafts] = useState<Draft[]>([
     { id: 'A', name: 'Option A', clientName: '', type: 'Dress', complexity: 'Moderate', hours: 10, materials: 5000, description: 'Standard Fabric' },
@@ -176,6 +178,26 @@ export default function PreQuoteSimulator({ onConfirm }: PreQuoteSimulatorProps)
                   <label className="text-sm font-bold text-stone-700 uppercase tracking-wider">Garment Details</label>
                   <div className="space-y-4">
                     <div className="space-y-2">
+                      <label className="text-xs font-medium text-stone-500">Link to Existing Order (Optional)</label>
+                      <select
+                        value={activeDraft.orderId || ''}
+                        onChange={(e) => {
+                          const orderId = e.target.value;
+                          const selectedOrder = orders.find(o => o.id === orderId);
+                          updateDraft({ 
+                            orderId, 
+                            clientName: selectedOrder ? selectedOrder.clientName : activeDraft.clientName 
+                          });
+                        }}
+                        className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white outline-none text-sm"
+                      >
+                        <option value="">No linked order</option>
+                        {orders.map(o => (
+                          <option key={o.id} value={o.id}>{o.clientName} ({o.id})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
                       <label className="text-xs font-medium text-stone-500">Client Name</label>
                       <input
                         type="text"
@@ -289,11 +311,19 @@ export default function PreQuoteSimulator({ onConfirm }: PreQuoteSimulatorProps)
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-brand-200">Production Floor</span>
-                    <span className="font-bold">{formatCurrency(metrics.totalBaseCost)}</span>
+                    <span className="font-bold">{formatCurrency(metrics.productionFloor)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-brand-200">Markup (30%)</span>
+                    <span className="font-bold">+{formatCurrency(metrics.priceBeforeExpansion - metrics.productionFloor)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-brand-200">Expansion Fund</span>
                     <span className="font-bold text-emerald-400">+{formatCurrency(metrics.expansionFund)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm border-t border-white/5 pt-2">
+                    <span className="text-brand-200 italic">Luxury Rounding</span>
+                    <span className="font-bold text-brand-400">+{formatCurrency(metrics.roundingBonus)}</span>
                   </div>
                 </div>
               </div>

@@ -32,7 +32,10 @@ function AppContent() {
     expenses,
     addExpense,
     updateExpense,
-    deleteExpense
+    deleteExpense,
+    isOnline,
+    isSyncing,
+    pendingCount
   } = useStore();
   const [prefilledGarment, setPrefilledGarment] = React.useState<any>(null);
 
@@ -89,8 +92,10 @@ function AppContent() {
       case 'simulator':
         return (
           <PreQuoteSimulator 
+            orders={orders}
             onConfirm={(draft) => {
               setPrefilledGarment({
+                orderId: draft.orderId,
                 clientName: draft.clientName,
                 type: draft.type,
                 complexity: draft.complexity,
@@ -111,7 +116,13 @@ function AppContent() {
   };
 
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
+    <Layout 
+      activeTab={activeTab} 
+      setActiveTab={setActiveTab}
+      isOnline={isOnline}
+      isSyncing={isSyncing}
+      pendingCount={pendingCount}
+    >
       <AnimatePresence mode="wait">
         <motion.div
           key={activeTab}
