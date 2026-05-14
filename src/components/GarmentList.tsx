@@ -464,7 +464,7 @@ export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelet
                   <select
                     name="orderId"
                     defaultValue={prefilledData?.orderId || editingGarment?.orderId}
-                    disabled={!isAdmin}
+                    disabled={!isAdmin && !!editingGarment}
                     className="w-full px-4 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none bg-stone-50 disabled:opacity-50"
                   >
                     <option value="">No linked order (Standalone)</option>
@@ -479,7 +479,7 @@ export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelet
                     name="clientName"
                     defaultValue={prefilledData?.clientName || editingGarment?.clientName}
                     required
-                    disabled={!isAdmin}
+                    disabled={!isAdmin && !!editingGarment}
                     placeholder="e.g. Jane Doe"
                     className="w-full px-4 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none bg-white disabled:bg-stone-50"
                   />
@@ -520,7 +520,7 @@ export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelet
                     name="description"
                     defaultValue={prefilledData?.description || editingGarment?.description}
                     required
-                    disabled={!isAdmin}
+                    disabled={!isAdmin && !!editingGarment}
                     placeholder="e.g. Silk Wedding Gown with Lace"
                     className="w-full px-4 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none bg-white disabled:bg-stone-50 disabled:opacity-50"
                   />
@@ -533,7 +533,7 @@ export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelet
                       type="date"
                       defaultValue={editingGarment?.startDate}
                       required
-                      disabled={!isAdmin}
+                      disabled={!isAdmin && !!editingGarment}
                       className="w-full px-4 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none bg-white disabled:bg-stone-50 disabled:opacity-50"
                     />
                   </div>
@@ -544,7 +544,7 @@ export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelet
                       type="date"
                       defaultValue={editingGarment?.dueDate}
                       required
-                      disabled={!isAdmin}
+                      disabled={!isAdmin && !!editingGarment}
                       className="w-full px-4 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none bg-white disabled:bg-stone-50 disabled:opacity-50"
                     />
                   </div>
@@ -553,7 +553,7 @@ export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelet
             </div>
 
             {/* Financials - Hidden for Staff */}
-            {isAdmin && (
+            {(isAdmin || !editingGarment) && (
               <div className="space-y-4">
                 <h4 className="text-sm font-bold text-stone-400 uppercase tracking-wider">Costing & Pricing</h4>
                 <div className="space-y-4">
@@ -662,7 +662,7 @@ export default function GarmentList({ garments, orders, onAdd, onUpdate, onDelet
                       type="date"
                       defaultValue={editingGarment?.dueDate}
                       required
-                      disabled={!isAdmin}
+                      disabled={!isAdmin && !!editingGarment}
                       className="w-full px-4 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none disabled:bg-stone-50 disabled:opacity-50"
                     />
                   </div>
